@@ -162,6 +162,8 @@ def runAndTest(deg, print_bool):
         plot(ax, answer.flatten(),'-')
         show()
 
+    saveResults(answer)
+
 
 
 #-- Trains a model using the training data  --#

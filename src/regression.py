@@ -20,20 +20,25 @@ test_file = test_dir + "X_test.csv"
 train_args = np.loadtxt(train_file_x, delimiter=',', skiprows=1)
 train_ans = np.loadtxt(train_file_y, delimiter=',', skiprows=1)[:,1]
 
+test_args = np.loadtxt(test_file, delimiter=',', skiprows=1)
 
 # Run a full train/test cycle
 # args:
 #   am_test - amount of data to be designated for testing
-def run(p_test):
+def run(p_test, deg):
 
     am_test = p_test
 
-    print (str((train_ans.shape[0])) + "   numer of input elements.")
-    print ("Splitting input into blocks of " + str(am_test))
+    #print (str((train_ans.shape[0])) + "   numer of input elements.")
+    #print ("Splitting input into blocks of " + str(am_test))
 
     # Full matrices of input data
     args = train_args.reshape(-1,6)
     ans = train_ans.reshape(-1,1)
+
+    f_test_args = test_args.reshape(-1,6)
+
+    avg_models = []
 
     if (p_test == 0):
         i = 1
@@ -73,9 +78,9 @@ def run(p_test):
         tr_ans = np.concatenate((f,s))
 
         # Train regression model
-        model = train(tr_args, tr_ans, 1)
+        model = train(tr_args, tr_ans, deg)
 
-        print ((model.get_params()))
+        avg_models += [model.coef_]
 
         # Matrix for the testing independent variables
         te_args = train_args[am_test*x:am_test*(x+1)].reshape(-1,6)
@@ -84,16 +89,50 @@ def run(p_test):
         te_ans = train_ans[am_test*x:am_test*(x+1)].reshape(-1,1)
 
         # Run model on test section of data
-        answer = test(model, te_args)
+        answer = test(model, te_args, deg)
         final_ans = np.concatenate((final_ans, answer))
 
         # Log to graph
         ax = axis[am_test*x:am_test*(x+1)]
         plot(ax, answer.flatten(),'o')
 
+    show()
+
+    poly = PolynomialFeatures(degree=deg)
+    te_ = poly.fit_transform(f_test_args)
+    results = model.predict(te_)
+    print (results)
+    saveResults(results)
+    plot(np.array(range(0,results.shape[0])), results.flatten(),'o')
+    show()
+    return
     # Finally, show
     # Print test performance
     printPerformnce(final_ans, ans, "done")
+
+    # Create final model from average of all models
+    final_model = np.zeros(avg_models[0].shape)
+    for mod in avg_models:
+        print (mod)
+        final_model = final_model + mod
+    print (final_model)
+    print (len(avg_models))
+    final_model = (final_model)/(len(avg_models))
+    print (final_model)
+
+    print (dir(model))
+    print (model.get_params())
+
+    model = linear_model.LinearRegression()
+    model.intercept_=0
+    model.coef_= final_model
+    print (model.coef_)
+    poly = PolynomialFeatures(degree=deg)
+    te_ = poly.fit_transform(f_test_args)
+    results = model.predict(te_)
+    print (results)
+    saveResults(results)
+    plot(np.array(range(0,results.shape[0])), results.flatten(),'o')
     show()
 
 
@@ -106,21 +145,21 @@ def train(tr_args, te_ans, deg):
     tr_ = poly.fit_transform(tr_args)
 
     # Perform linear regression on training data and get model
-    ols = linear_model.LinearRegression()
+    ols = linear_model.LinearRegression(normalize=True)
     model = ols.fit(tr_, te_ans)
 
     # Print the model
-    print (model.coef_)
+    #print (model.coef_)
 
     # Return model
     return model
 
 
 #-- Runs a test and generates an answer for test data --#
-def test(model, te_args):
+def test(model, te_args, deg):
 
     # Run model on test data
-    poly = PolynomialFeatures(degree=1)
+    poly = PolynomialFeatures(degree=deg)
     te_ = poly.fit_transform(te_args)
     results = model.predict(te_)
 
@@ -146,14 +185,16 @@ def saveResults(results):
 def printPerformnce(answer, te_ans, iter):
     rmse =  math.sqrt(mean_squared_error(answer, te_ans))
 
-    print ("ITERATION:   " + str(iter))
-    print ("\tOver " + str(answer.shape[0]) + " test entries:")
-    print ("\tRMSE    " + str(rmse))
+    # print ("ITERATION:   " + str(iter))
+    # print ("\tOver " + str(answer.shape[0]) + " test entries:")
+    # print ("\tRMSE    " + str(rmse))
 
+    print(rmse)
     return rmse
 
 
-
-run(0)
-run(2)
-run(8)
+run(0,1)
+run(0,2)
+run(0,3)
+run(0,4)
+run(0,5)

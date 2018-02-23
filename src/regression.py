@@ -137,6 +137,33 @@ def run(p_test, deg):
 
 
 
+def runAndTest(deg, print_bool):
+    args = train_args.reshape(-1,6)
+    ans = train_ans.reshape(-1,1)
+
+    f_test_args = test_args.reshape(-1,6)
+
+    model = train(args, ans, deg)
+
+    answer = test(model, args, deg)
+
+    print (math.sqrt(mean_squared_error(answer, ans)))
+
+    if (print_bool):
+        ax = range(0,ans.shape[0])
+        plot(ax, ans.flatten(),'o')
+        plot(ax, answer.flatten(),'-')
+        show()
+
+    answer = test(model, f_test_args, deg)
+
+    if (print_bool):
+        ax = range(0,f_test_args.shape[0])
+        plot(ax, answer.flatten(),'-')
+        show()
+
+
+
 #-- Trains a model using the training data  --#
 def train(tr_args, te_ans, deg):
 
@@ -193,8 +220,6 @@ def printPerformnce(answer, te_ans, iter):
     return rmse
 
 
-run(0,1)
-run(0,2)
-run(0,3)
-run(0,4)
-run(0,5)
+
+for i in range(0,10):
+    runAndTest(i, True)

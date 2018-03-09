@@ -29,15 +29,15 @@ X_test = min_max_scaler.fit_transform(X_test)
 
 
 
-mutinfo = mutual_info_classif(xdata,ydata, n_neighbors=5)
-delarray=[]
-for i in range((len(mutinfo)-1),-1,-1):
-	if mutinfo[i]<0.01:
-		delarray.append(i)
-xdata = np.delete(xdata,delarray,axis=1)
-print xdata.shape
+# mutinfo = mutual_info_classif(xdata,ydata, n_neighbors=5)
+# delarray=[]
+# for i in range((len(mutinfo)-1),-1,-1):
+# 	if mutinfo[i]<0.01:
+# 		delarray.append(i)
+# xdata = np.delete(xdata,delarray,axis=1)
+# print xdata.shape
 
-xdata = SelectKBest(chi2, k = 80).fit_transform(xdata,ydata)
+# xdata = SelectKBest(chi2, k = 80).fit_transform(xdata,ydata)
 # print xdata.shape
 
 #split data in half
@@ -49,21 +49,30 @@ xdata = SelectKBest(chi2, k = 80).fit_transform(xdata,ydata)
 # y_train,y_test=ydata[:len(ydata)/4*3],ydata[len(ydata)/4*3:]
 
 #1/4 data for training
-x_train,x_test=xdata[len(xdata)/4*3:],xdata[:len(xdata)/4*3]
-y_train,y_test=ydata[len(ydata)/4*3:],ydata[:len(ydata)/4*3]
+# x_train,x_test=xdata[len(xdata)/4*3:],xdata[:len(xdata)/4*3]
+# y_train,y_test=ydata[len(ydata)/4*3:],ydata[:len(ydata)/4*3]
 
 #dont split the data
-# x_train = xdata
-# y_train = ydata
+x_train = xdata
+y_train = ydata
 
 # rf = GridSearchCV(RandomForestClassifier(n_estimators=100), parameters)
 rf = RandomForestClassifier(n_estimators=100000)
 rf.fit(x_train,y_train)
-y_pred = rf.predict(x_test)
-score = rf.score(x_test,y_test)
-print rf.get_params()
+y_pred = rf.predict(X_test)
+# score = rf.score(x_test,y_test)
+# print rf.get_params()
 
 # print importance
-print "score ", score
-print y_pred
+# print "score ", score
+print (y_pred)
 
+test_header = "Id,EpiOrStroma"
+n_points = X_test.shape[0]
+# for i in range(n_points):
+# 	y_pred.append(int(knn_classifier(X_train,y_train,X_test[i-1,:],K=1))) 
+y_pred_pp = np.ones((n_points, 2))
+y_pred_pp[:, 0] = range(n_points)
+y_pred_pp[:, 1] = y_pred
+np.savetxt('my_submission.csv', y_pred_pp, fmt='%d', delimiter=",",
+		 header=test_header, comments="")

@@ -30,6 +30,26 @@ train_ans = np.loadtxt(train_file_y, delimiter=',', skiprows=1)[:,1]
 test_args = np.loadtxt(test_file, delimiter=',', skiprows=1)
 
 
+def preprocessData(data, combine_cache, combine_memory):
+
+    new_ca = np.sum((data[:,4],data[:,5]), axis=0)
+    new_mem = np.sum((data[:,1],data[:,2]), axis=0)
+
+    if (combine_cache and combine_memory):
+        new_data = np.column_stack((data[:,0] , new_mem, data[:,3], new_ca))
+
+    elif (combine_cache):
+        new_data = np.column_stack((data[:,0] ,data[:,1] , data[:,2], data[:,3], new_ca))
+
+    elif (combine_memory):
+        new_data = np.column_stack((data[:,0] , new_mem, data[:,3] , data[:,4], data[:,5]))
+
+    else:
+        new_data = data
+
+    print (new_data.shape)
+    return new_data
+
 
 '''
 Runs a regression model and cross validation to give answer.
@@ -40,7 +60,7 @@ print - print out metrics and graphs
 per - percent to use per segment (0 for 'leave 1 out validation')
 
 '''
-def runAndTestWithCrossValidation(reg, scl, deg, print_b, per):
+def runAndTestWithCrossValidation(train_args, train_ans, reg, scl, deg, print_b, per):
 
     seg_n = int(per*(train_args.shape[0]))
     iters = float(train_args.shape[0])/float(seg_n)
@@ -77,10 +97,19 @@ def runAndTestWithCrossValidation(reg, scl, deg, print_b, per):
         elif (scl == "robust"):
             tr_args = preprocessing.robust_scale(tr_args)
             te_args = preprocessing.robust_scale(te_args)
-        elif (scl == "log"):
+        elif (scl == "log1p"):
             transformer = FunctionTransformer(np.log1p)
             tr_args = transformer.transform(tr_args)
             te_args = transformer.transform(te_args)
+        elif (scl == "log2"):
+            transformer = FunctionTransformer(np.log2)
+            tr_args = transformer.transform(tr_args)
+            te_args = transformer.transform(te_args)
+        elif (scl == "log10"):
+            transformer = FunctionTransformer(np.log10)
+            tr_args = transformer.transform(tr_args)
+            te_args = transformer.transform(te_args)
+
 
 
         # Convert to polynomial features
@@ -110,6 +139,7 @@ def runAndTestWithCrossValidation(reg, scl, deg, print_b, per):
             print ("    RMSE of " + str(math.sqrt(mean_squared_error(answer, te_ans))))
 
     # Log to graph
+    rmse = math.sqrt(mean_squared_error(final_ans, train_ans))
     if (print_b):
 
         print ("Done all segments ")
@@ -118,6 +148,7 @@ def runAndTestWithCrossValidation(reg, scl, deg, print_b, per):
         plot(axis, final_ans.flatten(),'o')
         plot(axis, train_ans.flatten(), 'ro')
         show()
+    return rmse
 
 
 '''
@@ -128,7 +159,7 @@ deg - polynomial degree to use
 print - print out metrics and graphs
 
 '''
-def runAndSubmit(reg, scl, deg, print_b):
+def runAndSubmit(train_args, train_ans, test_args, reg, scl, deg, print_b):
 
     tr_args = train_args
     tr_ans = train_ans
@@ -167,7 +198,6 @@ def runAndSubmit(reg, scl, deg, print_b):
 
     answer = test(model, tr_args)
     print (math.sqrt(mean_squared_error(answer, tr_ans)))
-
     if (print_b):
         ax = range(0, answer.shape[0])
         plot(ax, answer.flatten(),'o')
@@ -181,6 +211,7 @@ def runAndSubmit(reg, scl, deg, print_b):
         plot(ax, answer.flatten(),'o')
         show()
     saveResults(answer.flatten())
+    return answer
 
 
 '''
@@ -219,7 +250,7 @@ def trainRidge(tr_args, tr_ans):
 def trainElastic(tr_args, tr_ans):
 
     # Perform elastic regression on training data and get model
-    elas = linear_model.ElasticNet(alpha=1, l1_ratio=0.5)
+    elas = linear_model.ElasticNet(alpha=aaab, l1_ratio=aaac, positive=aaad)
     model = elas.fit(tr_args, tr_ans)
 
     return model
@@ -253,8 +284,19 @@ def saveResults(results):
     output[:, 1] = results
 
     # Save to file
-    np.savetxt(sub_dir+"my_submission.csv", output, fmt='%d', delimiter=",", header=header, comments="")
+    np.savetxt(sub_dir+"my_submission.csv", output, fmt='%d,%f', delimiter=",", header=header, comments="")
 
-runAndTestWithCrossValidation("elastic", "log", 3, True, 0.10)
-runAndTestWithCrossValidation("elastic", "log", 3, True, 0.10)
-runAndTestWithCrossValidation("elastic", "log", 2, True, 0.10)
+
+def ensemble(results, weights=None):
+
+    total = np.zeros(results[0].shape[0])
+
+    for result in results:
+        total = total + result
+
+    total = total / results.shape[0]
+
+    ax = range(0, total.shape[0])
+    plot(ax, total.flatten(),'o')
+    show()
+    saveResults(total)

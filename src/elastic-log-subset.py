@@ -7,7 +7,7 @@ from sklearn.preprocessing import PolynomialFeatures
 
 # Config
 deg = 3             # Degree of regression
-alp = 1             # Alpha - constant that multiplies penalty terms
+alp = 5             # Alpha - constant that multiplies penalty terms
 l1r = 0.5           # Level - elastic net mixing parameter
 max_iter = 100000   # Max number of iterations for elastic net
 
